@@ -1,445 +1,263 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, RefreshCw, CheckCircle2, ArrowRight } from "lucide-react";
-import { Navbar } from "../components/Navbar";
+import React, { useState, useEffect, useCallback } from "react";
 import { LandingPage } from "../components/LandingPage";
+import { AuthScreens } from "../components/AuthScreens";
+import { AppSidebar } from "../components/AppSidebar";
+import { AppHeader } from "../components/AppHeader";
 import { Dashboard } from "../components/Dashboard";
-import { FeedTypeMatrix } from "../components/FeedTypeMatrix";
-import { MultiPointSampling } from "../components/MultiPointSampling";
-import { EvidencePanel } from "../components/EvidencePanel";
-import { NutritionResultsPanel } from "../components/NutritionResultsPanel";
-import { CameraAttachment } from "../components/CameraAttachment";
-import { DairyRationAssessor } from "../components/DairyRationAssessor";
-import { SilageMonitor } from "../components/SilageMonitor";
-import { DigitalTwinPassport } from "../components/DigitalTwinPassport";
-import { 
-  analyzeBatch, checkApiHealth, FarmContext, getFarmContext, 
-  BatchAnalyzeResponse, saveFarmContext, FeedType, ScenarioId, ApiHealth 
-} from "../lib/api";
-import { dictionary, Language } from "../lib/dictionary";
+import { TestFeedSelection } from "../components/TestFeedSelection";
+import { FeedScanSampling } from "../components/FeedScanSampling";
+import { AnalysisProgressEvidence } from "../components/AnalysisProgressEvidence";
+import { FeedAnalysisResults } from "../components/FeedAnalysisResults";
+import { ContaminantSafety } from "../components/ContaminantSafety";
+import { LiveFeedZone } from "../components/LiveFeedZone";
+import { SilageAnalysisScreen } from "../components/SilageAnalysisScreen";
+import { DairyProfileScreen } from "../components/DairyProfileScreen";
+import { FeedBasketScreen } from "../components/FeedBasketScreen";
+import { RationAdvisoryOptimizer } from "../components/RationAdvisoryOptimizer";
+import { QualityPassportTraceability } from "../components/QualityPassportTraceability";
+import { ReportsHistoryScreen } from "../components/ReportsHistoryScreen";
+import { DevicesDataHealth } from "../components/DevicesDataHealth";
+import { ProfileSettingsScreen } from "../components/ProfileSettingsScreen";
+import { WhatsAppShareModal } from "../components/WhatsAppShareModal";
+import { Language } from "../lib/dictionary";
+import { analyzeBatch, BatchAnalyzeResponse, checkApiHealth } from "../lib/api";
 
 export default function Home() {
   const [lang, setLang] = useState<Language>("en");
-  const [farmerMode, setFarmerMode] = useState(false);
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [scenario, setScenario] = useState<ScenarioId>("healthy");
-  const [feedType, setFeedType] = useState<FeedType>("Maize Silage");
-  const [data, setData] = useState<BatchAnalyzeResponse | null>(null);
-  const [farmContext, setFarmContext] = useState<FarmContext | null>(null);
-  const [health, setHealth] = useState<ApiHealth | null>(null);
-  const [loadingContext, setLoadingContext] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [savingContext, setSavingContext] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [activeScreen, setActiveScreen] = useState<string>("landing");
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [selectedFeedType, setSelectedFeedType] = useState<string>("Maize Silage");
+  const [batchId, setBatchId] = useState<string>("MS-2026-0012");
+  const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
+  const [analysisData, setAnalysisData] = useState<BatchAnalyzeResponse | null>(null);
 
-  const requestId = useRef(0);
-  const t = dictionary[lang];
-
-  const refreshContext = useCallback(async () => {
-    setLoadingContext(true);
-    setError(null);
+  // Load backend baseline analysis for live metrics
+  const loadBatchAnalysis = useCallback(async (feed: string) => {
     try {
-      const [context, apiHealth] = await Promise.all([getFarmContext(), checkApiHealth()]);
-      setFarmContext(context);
-      setHealth(apiHealth);
-    } catch (cause) {
-      setHealth(null);
-      setError(cause instanceof Error ? cause.message : "Could not connect to the FeedSure API.");
-    } finally {
-      setLoadingContext(false);
+      const res = await analyzeBatch(feed as any, "healthy");
+      setAnalysisData(res);
+      if (res.batch_id) setBatchId(res.batch_id);
+    } catch (err) {
+      console.warn("Using offline verified baseline dataset for demo:", err);
     }
   }, []);
 
-  useEffect(() => { void refreshContext(); }, [refreshContext]);
+  useEffect(() => {
+    void loadBatchAnalysis("Maize Silage");
+  }, [loadBatchAnalysis]);
 
-  const loadBatchData = useCallback(async () => {
-    if (!farmContext) return;
-    const id = ++requestId.current;
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await analyzeBatch(feedType, scenario, farmContext);
-      if (id === requestId.current) setData(result);
-    } catch (cause) {
-      if (id === requestId.current) {
-        setData(null);
-        setError(cause instanceof Error ? cause.message : "Analysis failed.");
-      }
-    } finally {
-      if (id === requestId.current) setLoading(false);
-    }
-  }, [farmContext, feedType, scenario]);
+  // Public Screens (1: Landing, 2: Login, 3: Sign Up)
+  if (activeScreen === "landing") {
+    return (
+      <LandingPage
+        lang={lang}
+        onEnterApp={(target) => {
+          if (target === "login") {
+            setAuthMode("login");
+            setActiveScreen("login");
+          } else if (target === "signup") {
+            setAuthMode("signup");
+            setActiveScreen("signup");
+          } else {
+            setActiveScreen("dashboard");
+          }
+        }}
+        onSelectLang={setLang}
+      />
+    );
+  }
 
-  useEffect(() => { void loadBatchData(); }, [loadBatchData]);
+  if (activeScreen === "login" || activeScreen === "signup") {
+    return (
+      <AuthScreens
+        mode={authMode}
+        setMode={setAuthMode}
+        onSuccess={() => setActiveScreen("dashboard")}
+        onBackToHome={() => setActiveScreen("landing")}
+        lang={lang}
+      />
+    );
+  }
 
-  const handleSaveContext = async (updated: FarmContext) => {
-    setSavingContext(true);
-    try {
-      const saved = await saveFarmContext(updated);
-      setFarmContext(saved);
-      return true;
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not save farm details.");
-      return false;
-    } finally { 
-      setSavingContext(false); 
-    }
-  };
-
-  // Safe tab switcher that also handles backward-compatible aliases
-  const switchTab = (tabId: string) => {
-    if (tabId === "testing") {
-      setActiveTab("nir-scan");
-    } else if (tabId === "silage" || tabId === "twin") {
-      setActiveTab("passport");
-    } else {
-      setActiveTab(tabId);
-    }
-  };
-
+  // Farmer Application Layout (Screens 4 to 18)
   return (
-    <div className="min-h-screen bg-[#faf8f5] text-[#1a1e1b] flex flex-col font-sans">
-      {activeTab !== "landing" && (
-        <Navbar 
-          lang={lang} 
-          setLang={setLang} 
-          farmerMode={farmerMode} 
-          setFarmerMode={setFarmerMode} 
-          activeTab={activeTab} 
-          setActiveTab={switchTab} 
+    <div className="flex h-screen bg-[#faf8f5] text-[#1a1e1b] overflow-hidden font-sans">
+      {/* 1. Sidebar Navigation */}
+      <AppSidebar
+        activeScreen={activeScreen}
+        setActiveScreen={setActiveScreen}
+        lang={lang}
+        onLogout={() => setActiveScreen("landing")}
+      />
+
+      {/* 2. Main Content Area + Top Header */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <AppHeader
+          lang={lang}
+          setLang={setLang}
+          activeScreen={activeScreen}
+          setActiveScreen={setActiveScreen}
+          dairySummary={{ lactating: 12, dry: 3, calves: 2, milkYield: 10.5 }}
+        />
+
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
+          {/* Screen 4: Farmer Dashboard */}
+          {activeScreen === "dashboard" && (
+            <Dashboard
+              onNavigate={(screen) => setActiveScreen(screen)}
+              lang={lang}
+              onOpenShareModal={() => setIsShareModalOpen(true)}
+            />
+          )}
+
+          {/* Screen 5: Test Feed - Selection */}
+          {activeScreen === "test-selection" && (
+            <TestFeedSelection
+              onStartScan={(feed) => {
+                setSelectedFeedType(feed);
+                setActiveScreen("test-scan");
+              }}
+              lang={lang}
+            />
+          )}
+
+          {/* Screen 6: Test Feed - 5-Point Core Scan */}
+          {activeScreen === "test-scan" && (
+            <FeedScanSampling
+              feedType={selectedFeedType}
+              onProceedToEvidence={() => setActiveScreen("test-analysis")}
+              onBack={() => setActiveScreen("test-selection")}
+              lang={lang}
+            />
+          )}
+
+          {/* Screen 7: Test Feed - AI Analysis & Evidence Engine */}
+          {activeScreen === "test-analysis" && (
+            <AnalysisProgressEvidence
+              feedType={selectedFeedType}
+              batchId={batchId}
+              onProceedToResults={() => setActiveScreen("test-results")}
+              onBack={() => setActiveScreen("test-scan")}
+              lang={lang}
+            />
+          )}
+
+          {/* Screen 8: Test Feed - Results */}
+          {activeScreen === "test-results" && (
+            <FeedAnalysisResults
+              feedType={selectedFeedType}
+              batchId={batchId}
+              onProceedToContaminants={() => setActiveScreen("contaminants")}
+              onProceedToRation={() => setActiveScreen("ration")}
+              onBack={() => setActiveScreen("test-analysis")}
+              lang={lang}
+            />
+          )}
+
+          {/* Screen 9: Contaminant & Safety Check */}
+          {activeScreen === "contaminants" && (
+            <ContaminantSafety
+              feedType={selectedFeedType}
+              batchId={batchId}
+              onProceedToRation={() => setActiveScreen("ration")}
+              onBack={() => setActiveScreen("test-results")}
+              lang={lang}
+            />
+          )}
+
+          {/* Screen 10: Live Feed Zone Monitoring */}
+          {activeScreen === "live-zone" && (
+            <LiveFeedZone
+              onRetest={() => {
+                setSelectedFeedType("Maize Silage");
+                setActiveScreen("test-scan");
+              }}
+              lang={lang}
+            />
+          )}
+
+          {/* Screen 11: Silage Analysis */}
+          {activeScreen === "silage" && (
+            <SilageAnalysisScreen
+              onProceedToPassport={() => setActiveScreen("passport")}
+              lang={lang}
+            />
+          )}
+
+          {/* Screen 12: Dairy Nutrition Profile */}
+          {activeScreen === "dairy-profile" && (
+            <DairyProfileScreen
+              onProceedToBasket={() => setActiveScreen("feed-basket")}
+              lang={lang}
+            />
+          )}
+
+          {/* Screen 13: Feed Basket Management */}
+          {activeScreen === "feed-basket" && (
+            <FeedBasketScreen
+              onProceedToRation={() => setActiveScreen("ration")}
+              onViewPassport={(name) => {
+                setSelectedFeedType(name);
+                setActiveScreen("passport");
+              }}
+              lang={lang}
+            />
+          )}
+
+          {/* Screen 14: Ration Advisory + Optimizer */}
+          {activeScreen === "ration" && (
+            <RationAdvisoryOptimizer
+              onProceedToPassport={() => setActiveScreen("passport")}
+              onBack={() => setActiveScreen("feed-basket")}
+              lang={lang}
+            />
+          )}
+
+          {/* Screen 15: Quality Passport & Traceability */}
+          {activeScreen === "passport" && (
+            <QualityPassportTraceability
+              batchId={batchId}
+              feedType={selectedFeedType}
+              lang={lang}
+            />
+          )}
+
+          {/* Screen 16: Reports & History */}
+          {activeScreen === "reports" && (
+            <ReportsHistoryScreen
+              onViewBatch={(id) => {
+                setBatchId(id);
+                setActiveScreen("test-results");
+              }}
+              lang={lang}
+            />
+          )}
+
+          {/* Screen 17: Devices & Hardware Data Health */}
+          {activeScreen === "devices" && <DevicesDataHealth lang={lang} />}
+
+          {/* Screen 18: Profile & Settings */}
+          {activeScreen === "settings" && (
+            <ProfileSettingsScreen
+              lang={lang}
+              setLang={setLang}
+              onLogout={() => setActiveScreen("landing")}
+            />
+          )}
+        </main>
+      </div>
+
+      {/* WhatsApp Verified Quality Report Modal */}
+      {isShareModalOpen && analysisData && (
+        <WhatsAppShareModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          data={analysisData}
+          lang={lang}
         />
       )}
-
-      {/* Batch Overview Ribbon */}
-      {activeTab !== "landing" && (
-        <nav aria-label="Batch workflow" className="border-b border-stone-200 bg-white px-4 py-2.5 no-print">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
-            <div className="flex items-center gap-2 overflow-x-auto text-xs">
-              <span className="shrink-0 text-[10px] font-mono uppercase bg-stone-100 px-2 py-0.5 rounded text-stone-600">
-                ACTIVE BATCH: <b>{data?.batch_id || "LOADING"}</b>
-              </span>
-              <span className="text-stone-300">·</span>
-              <span className="text-stone-600">
-                Forage: <b className="text-emerald-900">{feedType}</b>
-              </span>
-              <span className="text-stone-300">·</span>
-              <span className="text-stone-600">
-                Scenario: <b className="uppercase font-mono text-[11px]">{scenario}</b>
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs">
-              {loading && <span className="text-amber-700 font-bold animate-pulse text-[11px]">Updating AI models…</span>}
-              {data && !loading && (
-                <span className="text-emerald-700 font-bold text-[11px] flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  Calibrated &amp; Synced
-                </span>
-              )}
-            </div>
-          </div>
-        </nav>
-      )}
-
-      {error && (
-        <div role="alert" className="bg-rose-50 border-b border-rose-200 text-rose-900 px-4 py-3 no-print">
-          <div className="max-w-7xl mx-auto flex items-start justify-between gap-3 text-sm">
-            <span className="flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-              {error}
-            </span>
-            <button 
-              onClick={() => void (farmContext ? loadBatchData() : refreshContext())} 
-              className="shrink-0 font-bold inline-flex items-center gap-1"
-            >
-              <RefreshCw className="w-3.5 h-3.5" /> Retry
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Main Screen Container */}
-      <main className="flex-1">
-        {activeTab === "landing" ? (
-          <LandingPage 
-            lang={lang} 
-            onEnterApp={(target) => switchTab(target || "dashboard")} 
-            onSelectLang={setLang}
-          />
-        ) : (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
-
-            {!data && (loadingContext || loading) && (
-              <div className="bg-white rounded-3xl p-12 text-center text-stone-600 border border-stone-200 shadow-sm space-y-3">
-                <RefreshCw className="w-8 h-8 animate-spin mx-auto text-[#2d6a4f]" />
-                <h3 className="font-black text-lg text-stone-800">Synthesizing Chemometrics &amp; IoT Batch Models…</h3>
-                <p className="text-xs text-stone-500 max-w-md mx-auto">
-                  Running Scikit-Learn PLSR models, Mahalanobis covariance matrices, 
-                  and Flieg fermentation indices for {feedType}.
-                </p>
-              </div>
-            )}
-
-            {data && (
-              <>
-                {/* SCREEN 1: Dashboard Overview */}
-                {activeTab === "dashboard" && (
-                  <div className="space-y-6">
-                    <Dashboard 
-                      lang={lang} 
-                      data={data} 
-                      farmerMode={farmerMode} 
-                      onNavigateTab={switchTab} 
-                    />
-                    <div className="pt-4 border-t border-stone-200 flex justify-end no-print">
-                      <button
-                        onClick={() => switchTab("feed-type")}
-                        className="px-5 py-3 rounded-xl bg-[#1b4332] text-[#74c69d] font-bold text-xs flex items-center gap-2 shadow-sm hover:bg-[#2d6a4f] transition"
-                      >
-                        <span>Proceed to Screen 2: Feed Matrix</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* SCREEN 2: Feed Type Matrix & Intake Selection */}
-                {activeTab === "feed-type" && (
-                  <div className="space-y-6">
-                    <FeedTypeMatrix
-                      lang={lang}
-                      currentFeedType={feedType}
-                      onSelectFeedType={(feed) => setFeedType(feed)}
-                      onProceedToNIR={() => switchTab("nir-scan")}
-                    />
-                    <div className="pt-4 border-t border-stone-200 flex justify-between no-print">
-                      <button
-                        onClick={() => switchTab("dashboard")}
-                        className="px-4 py-2.5 rounded-xl border border-stone-300 font-bold text-xs text-stone-700 hover:bg-stone-50 transition"
-                      >
-                        ← Back to Dashboard
-                      </button>
-                      <button
-                        onClick={() => switchTab("nir-scan")}
-                        className="px-5 py-3 rounded-xl bg-[#1b4332] text-[#74c69d] font-bold text-xs flex items-center gap-2 shadow-sm hover:bg-[#2d6a4f] transition"
-                      >
-                        <span>Proceed to Screen 3: NIR Multi-Point Scan</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* SCREEN 3: NIR Multi-Point Scan (3x3 Grid & Preprocessing) */}
-                {activeTab === "nir-scan" && (
-                  <div className="space-y-6">
-                    <MultiPointSampling 
-                      lang={lang} 
-                      data={data} 
-                      farmerMode={farmerMode} 
-                    />
-                    <div className="pt-4 border-t border-stone-200 flex justify-between no-print">
-                      <button
-                        onClick={() => switchTab("feed-type")}
-                        className="px-4 py-2.5 rounded-xl border border-stone-300 font-bold text-xs text-stone-700 hover:bg-stone-50 transition"
-                      >
-                        ← Back to Feed Matrix
-                      </button>
-                      <button
-                        onClick={() => switchTab("evidence")}
-                        className="px-5 py-3 rounded-xl bg-[#1b4332] text-[#74c69d] font-bold text-xs flex items-center gap-2 shadow-sm hover:bg-[#2d6a4f] transition"
-                      >
-                        <span>Proceed to Screen 4: Evidence Check</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* SCREEN 4: Evidence Check & Mahalanobis OOD Gating */}
-                {activeTab === "evidence" && (
-                  <div className="space-y-6">
-                    <EvidencePanel 
-                      lang={lang} 
-                      data={data} 
-                      farmerMode={farmerMode} 
-                    />
-                    <div className="pt-4 border-t border-stone-200 flex justify-between no-print">
-                      <button
-                        onClick={() => switchTab("nir-scan")}
-                        className="px-4 py-2.5 rounded-xl border border-stone-300 font-bold text-xs text-stone-700 hover:bg-stone-50 transition"
-                      >
-                        ← Back to NIR Multi-Point
-                      </button>
-                      <button
-                        onClick={() => switchTab("nutrition")}
-                        className="px-5 py-3 rounded-xl bg-[#1b4332] text-[#74c69d] font-bold text-xs flex items-center gap-2 shadow-sm hover:bg-[#2d6a4f] transition"
-                      >
-                        <span>Proceed to Screen 5: Nutrition Results</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* SCREEN 5: Nutrition Results & PLSR Uncertainty Bands */}
-                {activeTab === "nutrition" && (
-                  <div className="space-y-6">
-                    <NutritionResultsPanel
-                      lang={lang}
-                      data={data}
-                      farmerMode={farmerMode}
-                      onProceedToCamera={() => switchTab("camera")}
-                      onNavigateTab={switchTab}
-                    />
-                    <div className="pt-4 border-t border-stone-200 flex justify-between no-print">
-                      <button
-                        onClick={() => switchTab("evidence")}
-                        className="px-4 py-2.5 rounded-xl border border-stone-300 font-bold text-xs text-stone-700 hover:bg-stone-50 transition"
-                      >
-                        ← Back to Evidence Check
-                      </button>
-                      <button
-                        onClick={() => switchTab("camera")}
-                        className="px-5 py-3 rounded-xl bg-[#1b4332] text-[#74c69d] font-bold text-xs flex items-center gap-2 shadow-sm hover:bg-[#2d6a4f] transition"
-                      >
-                        <span>Proceed to Screen 6: Camera Screening</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* SCREEN 6: Camera Texture Screening & Urea Colorimeter */}
-                {activeTab === "camera" && (
-                  <div className="space-y-6">
-                    <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                      <div>
-                        <div className="flex items-center space-x-2 text-xs font-bold text-[#2d6a4f] uppercase tracking-wider mb-1">
-                          <span className="bg-[#1b4332] text-[#74c69d] px-2.5 py-0.5 rounded-full font-mono text-[10px]">
-                            SCREEN 6 OF 8
-                          </span>
-                          <span>COMPUTER VISION &amp; RAPID CHEMICAL STRIP</span>
-                        </div>
-                        <h2 className="text-2xl sm:text-3xl font-black text-stone-900">
-                          Physical Surface Texture &amp; Chemical Adulteration
-                        </h2>
-                        <p className="text-xs sm:text-sm text-stone-500 mt-1 max-w-2xl">
-                          Automated 22-dimensional feature extraction, blur detection, 
-                          fungal mycelium classification, and Bromothymol Blue urea pad colorimetry.
-                        </p>
-                      </div>
-
-                      <button
-                        onClick={() => switchTab("ration")}
-                        className="px-5 py-3 rounded-xl bg-[#1b4332] text-[#74c69d] font-bold text-xs hover:bg-[#2d6a4f] transition flex items-center gap-2 shrink-0 shadow-sm"
-                      >
-                        <span>Proceed to Screen 7: Ration Advisory</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <CameraAttachment batchId={data.batch_id} lang={lang} />
-
-                    <div className="pt-4 border-t border-stone-200 flex justify-between no-print">
-                      <button
-                        onClick={() => switchTab("nutrition")}
-                        className="px-4 py-2.5 rounded-xl border border-stone-300 font-bold text-xs text-stone-700 hover:bg-stone-50 transition"
-                      >
-                        ← Back to Nutrition Results
-                      </button>
-                      <button
-                        onClick={() => switchTab("ration")}
-                        className="px-5 py-3 rounded-xl bg-[#1b4332] text-[#74c69d] font-bold text-xs flex items-center gap-2 shadow-sm hover:bg-[#2d6a4f] transition"
-                      >
-                        <span>Proceed to Screen 7: Dairy Ration Advisory</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* SCREEN 7: Dairy Ration Balancing & ICAR Requirements */}
-                {activeTab === "ration" && farmContext && (
-                  <div className="space-y-6">
-                    <DairyRationAssessor 
-                      lang={lang} 
-                      data={data} 
-                      farmerMode={farmerMode} 
-                      context={farmContext} 
-                      onSaveContext={handleSaveContext} 
-                      saving={savingContext} 
-                    />
-                    <div className="pt-4 border-t border-stone-200 flex justify-between no-print">
-                      <button
-                        onClick={() => switchTab("camera")}
-                        className="px-4 py-2.5 rounded-xl border border-stone-300 font-bold text-xs text-stone-700 hover:bg-stone-50 transition"
-                      >
-                        ← Back to Camera Screening
-                      </button>
-                      <button
-                        onClick={() => switchTab("passport")}
-                        className="px-5 py-3 rounded-xl bg-[#1b4332] text-[#74c69d] font-bold text-xs flex items-center gap-2 shadow-sm hover:bg-[#2d6a4f] transition"
-                      >
-                        <span>Proceed to Screen 8: Quality Passport &amp; IoT</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* SCREEN 8: Silage IoT Monitoring & Cryptographic Quality Passport */}
-                {activeTab === "passport" && (
-                  <div className="space-y-8">
-                    {/* Silage IoT Monitoring (Flieg Index, 24h Trajectory) */}
-                    <SilageMonitor 
-                      lang={lang} 
-                      data={data} 
-                      onTriggerAnomaly={(value) => setScenario(value as ScenarioId)} 
-                    />
-
-                    {/* Cryptographic Digital Twin & Printable Passport PDF/QR */}
-                    <DigitalTwinPassport 
-                      lang={lang} 
-                      data={data} 
-                    />
-
-                    <div className="pt-4 border-t border-stone-200 flex justify-between no-print">
-                      <button
-                        onClick={() => switchTab("ration")}
-                        className="px-4 py-2.5 rounded-xl border border-stone-300 font-bold text-xs text-stone-700 hover:bg-stone-50 transition"
-                      >
-                        ← Back to Dairy Ration
-                      </button>
-                      <button
-                        onClick={() => switchTab("dashboard")}
-                        className="px-5 py-3 rounded-xl bg-[#1b4332] text-[#74c69d] font-bold text-xs flex items-center gap-2 shadow-sm hover:bg-[#2d6a4f] transition"
-                      >
-                        <span>Back to Dashboard (Cycle Complete)</span>
-                        <CheckCircle2 className="w-4 h-4 text-[#74c69d]" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-          </div>
-        )}
-      </main>
-
-      {/* Platform Footer */}
-      <footer className="bg-[#122b20] text-stone-300 text-xs py-6 px-4 border-t border-[#2d6a4f] no-print">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span>
-            <strong className="text-white">FeedSure 360</strong> · Adaptive Evidence-Aware Feed &amp; Silage Intelligence Platform
-          </span>
-          <span>
-            Ministry of Fisheries, Animal Husbandry &amp; Dairying · ISO 12099 / ASTM E1655 Standards Compliant
-          </span>
-        </div>
-      </footer>
     </div>
   );
 }

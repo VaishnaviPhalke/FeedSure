@@ -1,268 +1,365 @@
 "use client";
 
-import React from "react";
-import { 
-  AlertTriangle, ArrowRight, CheckCircle2, Flame, Milk, 
-  ShieldAlert, Activity, ShieldCheck, Database, QrCode, 
-  ChevronRight, Thermometer, Layers, RefreshCw, FileText
+import React, { useState } from "react";
+import {
+  FlaskConical,
+  Radio,
+  ShoppingBasket,
+  Brain,
+  ShieldCheck,
+  AlertTriangle,
+  CheckCircle2,
+  TrendingUp,
+  ArrowRight,
+  Sparkles,
+  Milk,
+  RotateCcw,
+  Share2,
+  Volume2,
+  ChevronRight,
+  Layers,
+  Thermometer,
 } from "lucide-react";
-import { BatchAnalyzeResponse } from "../lib/api";
-import { dictionary, Language } from "../lib/dictionary";
+import { Language } from "../lib/dictionary";
+import { speakAdvisory } from "../lib/speech";
 
-interface Props {
+export interface DashboardProps {
+  onNavigate: (screenId: string) => void;
   lang: Language;
-  data: BatchAnalyzeResponse;
-  farmerMode: boolean;
-  onNavigateTab: (tab: string) => void;
+  onOpenShareModal?: () => void;
 }
 
-export const Dashboard: React.FC<Props> = ({ data, farmerMode, onNavigateTab, lang }) => {
-  const t = dictionary[lang] || dictionary.en;
-  const { evidence, nutritional_analysis: nutrition, dairy_ration: ration, storage_telemetry: storage, advisories } = data;
-  const profile = data.farm_profile;
-  
-  const isWithheld = ["RESULT NOT TRUSTED", "SUSPECTED ADULTERATION"].includes(evidence.trust_status);
-  
-  const statusLabel = lang === "mr"
-    ? ({ 
-        TRUSTED: "विश्वसनीय (TRUSTED)", 
-        "RETEST RECOMMENDED": "पुन्हा चाचणी शिफारस", 
-        "RESULT NOT TRUSTED": "निकाल अमान्य (NOT TRUSTED)", 
-        "SUSPECTED ADULTERATION": "संशयित भेसळ", 
-        "TRUSTED WITH STORAGE WARNING": "साठवण इशारा" 
-      }[evidence.trust_status] ?? evidence.trust_status)
-    : lang === "hi"
-    ? ({
-        TRUSTED: "विश्वसनीय (TRUSTED)",
-        "RETEST RECOMMENDED": "पुनः परीक्षण की सलाह",
-        "RESULT NOT TRUSTED": "परिणाम अमान्य (NOT TRUSTED)",
-        "SUSPECTED ADULTERATION": "संदिग्ध मिलावट",
-        "TRUSTED WITH STORAGE WARNING": "भंडारण चेतावनी"
-      }[evidence.trust_status] ?? evidence.trust_status)
-    : evidence.trust_status;
+export const Dashboard: React.FC<DashboardProps> = ({
+  onNavigate,
+  lang,
+  onOpenShareModal,
+}) => {
+  const [speaking, setSpeaking] = useState(false);
+
+  const handleVoiceAdvisory = () => {
+    setSpeaking(true);
+    const speechText =
+      lang === "hi"
+        ? "सुप्रभात रमेश जी! आपके 12 दुधारू पशुओं के लिए साइलेज परीक्षण विश्वसनीय है। आहार में प्रोटीन की मामूली कमी है जिसे खली बढ़ाकर पूरा किया जा सकता है।"
+        : lang === "mr"
+        ? "शुभ सकाळ रमेश जी! आपल्या १२ दुभत्या जनावरांसाठी सायलेज तपासणी विश्वासार्ह आहे. आहारात थोडी प्रथिने वाढवण्याची गरज आहे."
+        : "Good morning Ramesh! Silage test is verified and safe for feeding. A small protein gap of 0.4 kg can be closed by adjusting oil cake.";
+
+    speakAdvisory(speechText, lang);
+    setTimeout(() => setSpeaking(false), 5000);
+  };
+
+  const recentTests = [
+    { date: "12 Jun 2026", type: "Maize Silage", cp: "8.7%", dm: "34.2%", status: "Good", evidence: "HIGH", id: "MS-2026-0012" },
+    { date: "10 Jun 2026", type: "Green Fodder", cp: "9.5%", dm: "22.0%", status: "Good", evidence: "HIGH", id: "GF-2026-0008" },
+    { date: "08 Jun 2026", type: "Dry Fodder", cp: "3.8%", dm: "88.0%", status: "Needs Retest", evidence: "MED", id: "DF-2026-0004" },
+  ];
 
   return (
-    <div className="space-y-6">
-      
-      {/* 1. Farm Header Operational Banner */}
-      <section className="bg-gradient-to-r from-[#0e2a1c] via-[#143826] to-[#0e2a1c] text-white p-6 sm:p-8 rounded-3xl border border-[#2d6a4f] shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#74c69d] uppercase tracking-wider">
-            <Milk className="w-4 h-4 text-emerald-400" />
-            <span>{profile.farm_name} &bull; {profile.location}</span>
+    <div className="space-y-6 max-w-6xl mx-auto pb-8">
+      {/* Top Welcome Banner */}
+      <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl font-black text-[#1b4332]">
+              {lang === "hi" ? "सुप्रभात, रमेश जी! 👋" : lang === "mr" ? "शुभ सकाळ, रमेश जी! 👋" : "Good Morning, Ramesh! 👋"}
+            </h1>
+            <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-[#f3f9f4] text-[#2d6a4f] border border-[#b7e4c7]">
+              Patil Dairy Farm
+            </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
-            Farm Intelligence Dashboard
-          </h1>
-          <p className="text-xs sm:text-sm text-emerald-100 font-medium">
-            <strong>{profile.lactating_animals}</strong> {lang === 'mr' ? 'दुभती जनावरे' : lang === 'hi' ? 'दुधारू पशु' : 'Lactating Cattle'} &bull; <strong>{profile.dry_animals}</strong> {lang === 'mr' ? 'भाकड जनावरे' : lang === 'hi' ? 'सूखे पशु' : 'Dry Cattle'} &bull; <strong>{profile.daily_milk_yield_liters} L/day</strong> Total Yield
+          <p className="text-xs text-stone-500 font-medium">
+            Healthy Feed • Healthy Cows • Higher Milk Yield & Profits
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+        {/* Quick Action Buttons */}
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => onNavigateTab("nir-scan")}
-            className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-[#52b788] to-[#74c69d] text-[#1b4332] font-black text-xs sm:text-sm shadow-md hover:scale-105 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            onClick={handleVoiceAdvisory}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs transition-colors"
           >
-            <Activity className="w-4 h-4" />
-            <span>Run Feed Scan</span>
-            <ArrowRight className="w-4 h-4" />
+            <Volume2 className="w-4 h-4 text-amber-700" />
+            <span>{speaking ? "Speaking..." : lang === "hi" ? "दैनिक सलाह" : "Voice AI"}</span>
+          </button>
+
+          {onOpenShareModal && (
+            <button
+              onClick={onOpenShareModal}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold text-xs transition-colors"
+            >
+              <Share2 className="w-4 h-4 text-emerald-700" />
+              <span>WhatsApp Card</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => onNavigate("test-selection")}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2d6a4f] hover:bg-[#1b4332] text-white font-extrabold text-xs shadow-md transition-all active:scale-[0.99]"
+          >
+            <FlaskConical className="w-4 h-4" />
+            <span>+ Quick Test Feed</span>
           </button>
         </div>
-      </section>
-
-      {/* 2. Rapid Workflow Action Launcher */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { tab: "nir-scan", label: "Multi-Point NIR Scan", desc: "5-point spatial forage analysis", icon: Activity, tag: "Spectroscopy" },
-          { tab: "evidence", label: "Evidence Engine", desc: "Gating & Mahalanobis check", icon: ShieldCheck, tag: "Verification" },
-          { tab: "ration", label: "Dairy Ration Balancer", desc: "ICAR/NRC protein balance", icon: Layers, tag: "Advisory" },
-          { tab: "passport", label: "Quality Passport & IoT", desc: "SHA-256 batch ledger", icon: QrCode, tag: "Traceability" },
-        ].map((item) => {
-          const IconComp = item.icon;
-          return (
-            <button
-              key={item.label}
-              onClick={() => onNavigateTab(item.tab)}
-              className="bg-white p-5 rounded-3xl border border-stone-200 text-left shadow-2xs hover:shadow-md hover:border-[#1b4332] transition-all group flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-900 border border-emerald-200">
-                    {item.tag}
-                  </span>
-                  <IconComp className="w-4 h-4 text-stone-400 group-hover:text-[#1b4332] transition-colors" />
-                </div>
-                <div className="font-black text-sm text-stone-900 group-hover:text-[#1b4332] transition-colors">
-                  {item.label}
-                </div>
-                <div className="text-[11px] text-stone-500 mt-0.5">
-                  {item.desc}
-                </div>
-              </div>
-              <div className="pt-3 mt-3 border-t border-stone-100 flex items-center justify-between text-[11px] font-bold text-[#1b4332]">
-                <span>Open View</span>
-                <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </button>
-          );
-        })}
       </div>
 
-      {/* 3. Operational 4-Card KPI Grid */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        
-        {/* KPI 1: Evidence Status */}
-        <article className="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs flex flex-col justify-between">
+      {/* 4 Primary Action Touchcards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Test Feed */}
+        <div
+          onClick={() => onNavigate("test-selection")}
+          className="bg-white p-5 rounded-3xl border-2 border-[#b7e4c7] hover:border-[#2d6a4f] cursor-pointer shadow-xs transition-all hover:scale-[1.02] flex flex-col justify-between"
+        >
+          <div className="w-10 h-10 rounded-2xl bg-[#2d6a4f] text-white flex items-center justify-center mb-3 shadow-sm">
+            <FlaskConical className="w-5 h-5" />
+          </div>
           <div>
-            <div className="flex items-center justify-between text-xs text-stone-500 font-bold uppercase tracking-wider">
-              <span>BATCH INTEGRITY</span>
-              <span className="font-mono text-[10px] text-stone-400">#{data.batch_id}</span>
-            </div>
-            <div className={`text-xl font-black mt-3 flex items-center gap-2 ${
-              evidence.trust_status === 'TRUSTED' ? 'text-emerald-700' : 'text-amber-700'
-            }`}>
-              <ShieldCheck className="w-5 h-5 shrink-0" />
-              <span>{statusLabel}</span>
-            </div>
-            <p className="text-xs text-stone-500 mt-2">
-              Evidence Sufficiency Score: <strong className="text-stone-800">{evidence.evidence_score}%</strong>
-            </p>
+            <h3 className="text-sm font-black text-[#1b4332]">Test Feed</h3>
+            <p className="text-[11px] text-stone-500 mt-0.5">Analyze feed or silage with NIR & AI</p>
           </div>
-          <div className="pt-3 mt-3 border-t border-stone-100 text-[11px] text-stone-400 font-mono">
-            Calibration: {data.nutritional_analysis?.domain_status || 'IN_DOMAIN'}
-          </div>
-        </article>
-
-        {/* KPI 2: Crude Protein */}
-        <article className="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between text-xs text-stone-500 font-bold uppercase tracking-wider">
-              <span>CRUDE PROTEIN (CP)</span>
-              <span className="font-mono text-[10px] text-emerald-800 font-bold">{data.feed_type}</span>
-            </div>
-            <div className="text-3xl font-black mt-3 text-[#1b4332]">
-              {isWithheld ? "Withheld" : `${nutrition.crude_protein_pct}%`}
-            </div>
-            <p className="text-xs text-stone-500 mt-2">
-              Dry Matter: <strong className="text-stone-800">{nutrition.dry_matter_pct}%</strong> (Target 35–40%)
-            </p>
-          </div>
-          <div className="pt-3 mt-3 border-t border-stone-100 text-[11px] text-stone-400 font-mono">
-            {nutrition.confidence_intervals?.crude_protein_pct 
-              ? `95% CI: [${nutrition.confidence_intervals.crude_protein_pct[0]} - ${nutrition.confidence_intervals.crude_protein_pct[1]}%]`
-              : "PLSR Multi-Target Model"}
-          </div>
-        </article>
-
-        {/* KPI 3: Storage Microclimate */}
-        <article className="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between text-xs text-stone-500 font-bold uppercase tracking-wider">
-              <span>STORAGE MICROCLIMATE</span>
-              <Flame className="w-4 h-4 text-amber-500" />
-            </div>
-            <div className="text-3xl font-black mt-3 text-stone-900">
-              {storage.spoilage_risk_index}<span className="text-base text-stone-400 font-normal"> / 100</span>
-            </div>
-            <p className="text-xs text-stone-500 mt-2 flex items-center gap-1.5">
-              <Thermometer className="w-3.5 h-3.5 text-rose-500" />
-              <span>Face Temp: <strong className="text-stone-800">{storage.temperature_celsius}&deg;C</strong> &bull; pH {storage.ph}</span>
-            </p>
-          </div>
-          <div className="pt-3 mt-3 border-t border-stone-100 text-[11px] text-stone-400 font-mono">
-            Status: {storage.status || "STABLE"}
-          </div>
-        </article>
-
-        {/* KPI 4: Ration Balance Gap */}
-        <article className="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between text-xs text-stone-500 font-bold uppercase tracking-wider">
-              <span>RATION PROTEIN GAP</span>
-              <span className="font-mono text-[10px] text-stone-400">{ration?.ration_analysis?.ration_group || "Lactating"}</span>
-            </div>
-            <div className="text-3xl font-black mt-3 text-[#1b4332]">
-              {ration?.ration_analysis?.cp_gap_pct ? `${ration.ration_analysis.cp_gap_pct} pp` : "+0.4 kg"}
-            </div>
-            <p className="text-xs text-stone-500 mt-2">
-              Weighted Basket: <strong className="text-stone-800">{ration?.ration_analysis?.basket_weighted_cp_pct || 13.2}% CP</strong>
-            </p>
-          </div>
-          <div className="pt-3 mt-3 border-t border-stone-100 text-[11px] text-stone-400 font-mono">
-            ICAR Herd Standard Aligned
-          </div>
-        </article>
-
-      </section>
-
-      {/* 4. Critical Warning if Out-of-Domain or Adulterated */}
-      {isWithheld && (
-        <div className="rounded-3xl border border-rose-300 bg-rose-50 p-6 text-rose-950 shadow-xs flex items-start gap-4">
-          <ShieldAlert className="w-6 h-6 text-rose-600 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <h4 className="font-black text-sm">Quantitative Prediction Withheld — Confirmation Recommended</h4>
-            <p className="text-xs text-rose-900 leading-relaxed">
-              The current sample shows elevated Mahalanobis calibration distance or non-uniform core variance. Rather than outputting an uncertain number, FeedSure 360 advises collecting 5 fresh cores or submitting for lab validation.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* 5. Live Diagnostics & Advisories Section */}
-      <section className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-sm space-y-4">
-        <div className="flex justify-between items-center border-b border-stone-100 pb-4">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-amber-600" />
-            <h2 className="font-black text-lg text-stone-900">Active Operational Advisories</h2>
-          </div>
-          <span className="text-xs font-mono text-stone-500 font-bold bg-stone-100 px-2.5 py-1 rounded-full">
-            {advisories.length} Active Records
+          <span className="text-[10px] font-bold text-[#2d6a4f] mt-3 flex items-center gap-1">
+            Start 5-Pt Scan →
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-          {advisories.map((item) => (
-            <div 
-              key={item.id} 
-              className="p-4 rounded-2xl border border-stone-200 bg-stone-50 flex items-start gap-3 hover:border-stone-300 transition-colors"
+        {/* Card 2: Live Feed Zone */}
+        <div
+          onClick={() => onNavigate("live-zone")}
+          className="bg-white p-5 rounded-3xl border border-stone-200 hover:border-emerald-300 cursor-pointer shadow-xs transition-all hover:scale-[1.02] flex flex-col justify-between"
+        >
+          <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mb-3">
+            <Radio className="w-5 h-5 text-amber-700 animate-pulse" />
+          </div>
+          <div>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-black text-[#1b4332]">Live Feed Zone</h3>
+              <span className="text-[10px] font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                31.4°C
+              </span>
+            </div>
+            <p className="text-[11px] text-stone-500 mt-0.5">IoT trough temperature & humidity</p>
+          </div>
+          <span className="text-[10px] font-bold text-amber-700 mt-3 flex items-center gap-1">
+            View Trough Live →
+          </span>
+        </div>
+
+        {/* Card 3: Feed Basket */}
+        <div
+          onClick={() => onNavigate("feed-basket")}
+          className="bg-white p-5 rounded-3xl border border-stone-200 hover:border-emerald-300 cursor-pointer shadow-xs transition-all hover:scale-[1.02] flex flex-col justify-between"
+        >
+          <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-800 flex items-center justify-center mb-3">
+            <ShoppingBasket className="w-5 h-5 text-blue-700" />
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-[#1b4332]">Feed Basket</h3>
+            <p className="text-[11px] text-stone-500 mt-0.5">7 available farm ingredients</p>
+          </div>
+          <span className="text-[10px] font-bold text-blue-700 mt-3 flex items-center gap-1">
+            Manage Stock →
+          </span>
+        </div>
+
+        {/* Card 4: Dairy Advisory */}
+        <div
+          onClick={() => onNavigate("ration")}
+          className="bg-white p-5 rounded-3xl border border-stone-200 hover:border-emerald-300 cursor-pointer shadow-xs transition-all hover:scale-[1.02] flex flex-col justify-between"
+        >
+          <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-800 flex items-center justify-center mb-3">
+            <Brain className="w-5 h-5 text-purple-700" />
+          </div>
+          <div>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-black text-[#1b4332]">Dairy Advisory</h3>
+              <span className="text-[10px] font-extrabold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">
+                Save ₹59/cow
+              </span>
+            </div>
+            <p className="text-[11px] text-stone-500 mt-0.5">Least-cost ration optimization</p>
+          </div>
+          <span className="text-[10px] font-bold text-purple-700 mt-3 flex items-center gap-1">
+            Optimize Feed →
+          </span>
+        </div>
+      </div>
+
+      {/* Dashboard Innovation 1: Feed Decision Status Banner */}
+      <div className="bg-gradient-to-r from-[#f3f9f4] to-emerald-50 border-2 border-[#b7e4c7] p-5 rounded-3xl shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#2d6a4f] text-white flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+                  Feed Decision Status
+                </span>
+                <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-emerald-600 text-white">
+                  🟢 SAFE TO REVIEW FOR FEEDING
+                </span>
+              </div>
+              <p className="text-xs text-stone-600 mt-1">
+                Multi-source evidence fusion confirms sample belongs to calibrated domain with repeatable 5-point consistency.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+            <div className="bg-white p-2 rounded-xl border border-[#b7e4c7]">
+              <span className="text-[9px] text-stone-400 block font-bold">Evidence</span>
+              <span className="font-extrabold text-emerald-800">HIGH (91%)</span>
+            </div>
+            <div className="bg-white p-2 rounded-xl border border-[#b7e4c7]">
+              <span className="text-[9px] text-stone-400 block font-bold">Calibration</span>
+              <span className="font-extrabold text-emerald-800">IN DOMAIN</span>
+            </div>
+            <div className="bg-white p-2 rounded-xl border border-[#b7e4c7]">
+              <span className="text-[9px] text-stone-400 block font-bold">Sampling</span>
+              <span className="font-extrabold text-emerald-800">CONSISTENT</span>
+            </div>
+            <div className="bg-white p-2 rounded-xl border border-[#b7e4c7]">
+              <span className="text-[9px] text-stone-400 block font-bold">Storage</span>
+              <span className="font-extrabold text-emerald-800">STABLE</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2 Things Need Attention + Feed Lifecycle */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left: What Needs Attention (6 cols) */}
+        <div className="lg:col-span-6 bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-extrabold text-[#1b4332]">2 Things Need Attention</h3>
+            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+              Action Required
+            </span>
+          </div>
+
+          <div className="space-y-2.5">
+            <div
+              onClick={() => onNavigate("live-zone")}
+              className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 flex items-start gap-3 cursor-pointer hover:bg-amber-100/60 transition-colors"
             >
-              <CheckCircle2 className="w-4 h-4 mt-0.5 text-[#1b4332] shrink-0" />
-              <div className="space-y-1">
-                <div className="font-black text-xs text-stone-900">{item.title}</div>
-                <p className="text-xs text-stone-600 leading-relaxed">{item.message}</p>
-                <div className="text-[10px] uppercase font-mono tracking-wider text-stone-400 pt-1">
-                  Severity: <strong className="text-stone-600">{item.severity}</strong> &bull; Category: {item.category}
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="flex-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-amber-900">Silage Trough Heating Detected</span>
+                  <span className="text-[10px] font-bold text-amber-700">+2.7°C (24h)</span>
                 </div>
+                <p className="text-[11px] text-amber-800/90 mt-0.5">
+                  Trough Node FZ-001 indicates remaining 8.4 kg fodder exposed for 7h+. Clear trough before evening feed.
+                </p>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
 
-      {/* 6. Provenance and Methodology Technical Drawer */}
-      {!farmerMode && (
-        <details className="bg-white rounded-3xl p-6 border border-stone-200 shadow-2xs group">
-          <summary className="font-black text-xs uppercase tracking-wider text-stone-700 cursor-pointer flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <Database className="w-4 h-4 text-[#1b4332]" />
-              <span>Data Provenance &bull; Chemometric Pipeline Technical Notes</span>
-            </span>
-            <span className="text-[10px] text-stone-400 group-open:rotate-180 transition-transform">▼</span>
-          </summary>
-          <dl className="grid sm:grid-cols-2 gap-4 mt-4 pt-4 border-t border-stone-100 text-xs">
-            {Object.entries(data.data_provenance || {}).map(([key, value]) => (
-              <div key={key} className="p-3 bg-stone-50 rounded-xl border border-stone-200">
-                <dt className="font-bold font-mono text-[10px] uppercase text-stone-500">
-                  {key.replaceAll("_", " ")}
-                </dt>
-                <dd className="mt-1 font-medium text-stone-800 text-[11px]">{String(value)}</dd>
+            <div
+              onClick={() => onNavigate("ration")}
+              className="p-3.5 rounded-2xl bg-red-50/70 border border-red-200 flex items-start gap-3 cursor-pointer hover:bg-red-100/60 transition-colors"
+            >
+              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <div className="flex-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-red-900">Protein Gap in Lactating Ration</span>
+                  <span className="text-[10px] font-bold text-red-700">-0.4 kg CP/day</span>
+                </div>
+                <p className="text-[11px] text-red-800/90 mt-0.5">
+                  Current diet provides 2.0 kg CP vs 2.4 kg required. Click to run least-cost optimizer (+1 kg oil cake).
+                </p>
               </div>
-            ))}
-          </dl>
-        </details>
-      )}
+            </div>
+          </div>
+        </div>
 
+        {/* Right: Feed Lifecycle & Batch Status (6 cols) */}
+        <div className="lg:col-span-6 bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-extrabold text-[#1b4332]">Feed Inventory Lifecycle Track</h3>
+            <span className="text-xs font-bold text-stone-500">3 Batches Active</span>
+          </div>
+
+          {/* Lifecycle Bar */}
+          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+            <div className="p-3 rounded-2xl bg-[#f3f9f4] border border-[#b7e4c7]">
+              <span className="text-xl font-black text-[#1b4332] block">3</span>
+              <span className="text-[10px] text-stone-500 font-bold uppercase">Batches Monitored</span>
+            </div>
+            <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200">
+              <span className="text-xl font-black text-emerald-800 block">2</span>
+              <span className="text-[10px] text-emerald-700 font-bold uppercase">Stable & Verified</span>
+            </div>
+            <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200">
+              <span className="text-xl font-black text-amber-800 block">1</span>
+              <span className="text-[10px] text-amber-700 font-bold uppercase">Needs Retest</span>
+            </div>
+          </div>
+
+          <p className="text-[11px] text-stone-500">
+            🔗 <strong>Unified Feed Loop:</strong> Every scanned batch connects directly to storage temperature monitoring, dairy ration optimizer, and verifiable quality passport.
+          </p>
+        </div>
+      </div>
+
+      {/* Recent Feed Tests Table */}
+      <div className="bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden">
+        <div className="p-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+          <span className="text-xs font-extrabold text-[#1b4332] uppercase tracking-wider">
+            Recent Farm Feed Tests
+          </span>
+          <button
+            onClick={() => onNavigate("reports")}
+            className="text-xs font-bold text-[#2d6a4f] hover:underline"
+          >
+            View Full History →
+          </button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-stone-50 text-stone-500 font-bold uppercase text-[10px] border-b border-stone-200">
+              <tr>
+                <th className="px-5 py-3">Date Tested</th>
+                <th className="px-4 py-3">Feed Type</th>
+                <th className="px-4 py-3">Crude Protein</th>
+                <th className="px-4 py-3">Dry Matter</th>
+                <th className="px-4 py-3">Quality Status</th>
+                <th className="px-5 py-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100 font-medium text-stone-700">
+              {recentTests.map((row) => (
+                <tr key={row.id} className="hover:bg-[#f3f9f4]/60 transition-colors">
+                  <td className="px-5 py-3 font-bold text-stone-900">{row.date}</td>
+                  <td className="px-4 py-3 font-bold text-[#1b4332]">{row.type}</td>
+                  <td className="px-4 py-3 font-black text-[#2d6a4f]">{row.cp}</td>
+                  <td className="px-4 py-3">{row.dm}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${
+                        row.status === "Good"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-amber-100 text-amber-800"
+                      }`}
+                    >
+                      {row.status}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    <button
+                      onClick={() => onNavigate("test-results")}
+                      className="text-[11px] font-bold text-[#2d6a4f] hover:underline"
+                    >
+                      View →
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };
