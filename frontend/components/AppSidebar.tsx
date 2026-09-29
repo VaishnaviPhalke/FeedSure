@@ -15,6 +15,8 @@ import {
   LogOut,
   Sparkles,
   ChevronRight,
+  Building2,
+  Layers,
 } from "lucide-react";
 import { Language } from "../lib/dictionary";
 
@@ -33,31 +35,25 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
 }) => {
   const navGroups = [
     {
-      label: "MAIN MENU",
+      label: "TEST & SENSE",
       items: [
         {
           id: "dashboard",
-          label: lang === "hi" ? "डैशबोर्ड" : lang === "mr" ? "डॅशबोर्ड" : "Dashboard",
+          label: lang === "hi" ? "कमांड सेंटर" : lang === "mr" ? "कमांड सेंटर" : "Command Center",
           icon: LayoutDashboard,
           badge: null,
+          activeMatches: ["dashboard"],
         },
         {
           id: "test-selection",
           label: lang === "hi" ? "चारा परीक्षण" : lang === "mr" ? "चारा चाचणी" : "Test Feed",
           icon: FlaskConical,
-          badge: "AI 5-Pt",
+          badge: "5-Pt Core",
           activeMatches: ["test-selection", "test-scan", "test-analysis", "test-results", "contaminants"],
         },
         {
-          id: "live-zone",
-          label: lang === "hi" ? "लाइव चारा ज़ोन" : lang === "mr" ? "लाइव्ह चारा झोन" : "Live Monitoring",
-          icon: Radio,
-          badge: "31.4°C",
-          activeMatches: ["live-zone"],
-        },
-        {
           id: "silage",
-          label: lang === "hi" ? "साइलेज विश्लेषण" : lang === "mr" ? "सायलेज विश्लेषण" : "Silage Analysis",
+          label: lang === "hi" ? "साइलेज विश्लेषण" : lang === "mr" ? "सायलेज विश्लेषण" : "Silage Fermentation",
           icon: Sparkles,
           badge: "Flieg 82",
           activeMatches: ["silage"],
@@ -65,11 +61,23 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       ],
     },
     {
-      label: "DAIRY & RATION",
+      label: "MONITOR STORAGE",
+      items: [
+        {
+          id: "live-zone",
+          label: lang === "hi" ? "लाइव चारा ज़ोन" : lang === "mr" ? "लाइव्ह चारा झोन" : "Live Feed Zone",
+          icon: Radio,
+          badge: "31.4°C ⚠",
+          activeMatches: ["live-zone"],
+        },
+      ],
+    },
+    {
+      label: "DECIDE & OPTIMIZE",
       items: [
         {
           id: "dairy-profile",
-          label: lang === "hi" ? "डेयरी प्रोफाइल" : lang === "mr" ? "डेअरी प्रोफाईल" : "Dairy Profile",
+          label: lang === "hi" ? "डेयरी प्रोफाइल" : lang === "mr" ? "डेअरी प्रोफाईल" : "Dairy Herd Context",
           icon: Beef,
           badge: "12 Cows",
           activeMatches: ["dairy-profile"],
@@ -83,7 +91,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         },
         {
           id: "ration",
-          label: lang === "hi" ? "आहार सलाहकार" : lang === "mr" ? "आहार सल्लागार" : "Ration Advisory",
+          label: lang === "hi" ? "आहार सलाहकार" : lang === "mr" ? "आहार सल्लागार" : "Ration Optimizer",
           icon: Brain,
           badge: "Save ₹59",
           activeMatches: ["ration"],
@@ -91,7 +99,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       ],
     },
     {
-      label: "TRACEABILITY & DATA",
+      label: "TRUST & PROVENANCE",
       items: [
         {
           id: "passport",
@@ -102,11 +110,23 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         },
         {
           id: "reports",
-          label: lang === "hi" ? "रिपोर्ट्स और इतिहास" : lang === "mr" ? "अहवाल व इतिहास" : "Reports & History",
+          label: lang === "hi" ? "रिपोर्ट्स और इतिहास" : lang === "mr" ? "अहवाल व इतिहास" : "Reports & Trends",
           icon: FileText,
           badge: null,
           activeMatches: ["reports"],
         },
+        {
+          id: "cooperative",
+          label: lang === "hi" ? "सहकारी संघ दृश्य" : lang === "mr" ? "सहकारी संघ दृश्य" : "Co-op Surveillance",
+          icon: Building2,
+          badge: "27 Farms",
+          activeMatches: ["cooperative"],
+        },
+      ],
+    },
+    {
+      label: "SYSTEM & HARDWARE",
+      items: [
         {
           id: "devices",
           label: lang === "hi" ? "उपकरण और डेटा" : lang === "mr" ? "डिव्हाइसेस व डेटा" : "Devices & Health",
@@ -139,7 +159,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           <div className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
             FeedSure 360
             <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-[#2d6a4f] text-[#95d5b2]">
-              AI
+              Precision
             </span>
           </div>
           <p className="text-[11px] text-[#95d5b2]/70 font-medium">Smart Dairy Intelligence</p>
@@ -147,10 +167,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       </div>
 
       {/* Navigation Groups */}
-      <div className="flex-1 py-4 px-3 space-y-6 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 py-4 px-3 space-y-5 overflow-y-auto custom-scrollbar">
         {navGroups.map((group) => (
           <div key={group.label} className="space-y-1">
-            <div className="px-3 text-[10px] font-bold tracking-wider text-[#74c69d]/60 uppercase">
+            <div className="px-3 text-[10px] font-bold tracking-wider text-[#74c69d]/60 uppercase font-mono">
               {group.label}
             </div>
             {group.items.map((item) => {
@@ -163,7 +183,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 <button
                   key={item.id}
                   onClick={() => setActiveScreen(item.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group ${
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all group ${
                     isActive
                       ? "bg-[#2d6a4f] text-white shadow-sm font-bold border border-[#52b788]/30"
                       : "text-stone-300 hover:bg-[#163824] hover:text-white"
@@ -179,7 +199,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   </div>
                   {item.badge && (
                     <span
-                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                      className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
                         isActive
                           ? "bg-[#1b4332] text-[#95d5b2] border border-[#52b788]/40"
                           : "bg-[#163824] text-stone-300"
@@ -213,7 +233,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
 
         <button
           onClick={onLogout}
-          className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-red-300 hover:bg-red-950/40 hover:text-red-200 transition-colors"
+          className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-red-300 hover:bg-red-950/40 hover:text-red-200 transition-colors"
         >
           <LogOut className="w-3.5 h-3.5" />
           <span>{lang === "hi" ? "लॉग आउट" : lang === "mr" ? "लॉग आउट" : "Logout"}</span>

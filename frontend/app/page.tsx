@@ -20,14 +20,17 @@ import { QualityPassportTraceability } from "../components/QualityPassportTracea
 import { ReportsHistoryScreen } from "../components/ReportsHistoryScreen";
 import { DevicesDataHealth } from "../components/DevicesDataHealth";
 import { ProfileSettingsScreen } from "../components/ProfileSettingsScreen";
+import { CooperativeView } from "../components/CooperativeView";
 import { WhatsAppShareModal } from "../components/WhatsAppShareModal";
 import { Language } from "../lib/dictionary";
-import { analyzeBatch, BatchAnalyzeResponse, checkApiHealth } from "../lib/api";
+import { analyzeBatch, BatchAnalyzeResponse } from "../lib/api";
 
 export default function Home() {
   const [lang, setLang] = useState<Language>("en");
   const [activeScreen, setActiveScreen] = useState<string>("landing");
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [farmerMode, setFarmerMode] = useState<boolean>(false);
+  const [activeRole, setActiveRole] = useState<"farm" | "cooperative">("farm");
   const [selectedFeedType, setSelectedFeedType] = useState<string>("Maize Silage");
   const [batchId, setBatchId] = useState<string>("MS-2026-0012");
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
@@ -99,16 +102,21 @@ export default function Home() {
           setLang={setLang}
           activeScreen={activeScreen}
           setActiveScreen={setActiveScreen}
+          farmerMode={farmerMode}
+          setFarmerMode={setFarmerMode}
+          activeRole={activeRole}
+          setActiveRole={setActiveRole}
           dairySummary={{ lactating: 12, dry: 3, calves: 2, milkYield: 10.5 }}
         />
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
-          {/* Screen 4: Farmer Dashboard */}
+          {/* Screen 4: Farm Command Center Dashboard */}
           {activeScreen === "dashboard" && (
             <Dashboard
               onNavigate={(screen) => setActiveScreen(screen)}
               lang={lang}
               onOpenShareModal={() => setIsShareModalOpen(true)}
+              farmerMode={farmerMode}
             />
           )}
 
@@ -123,7 +131,7 @@ export default function Home() {
             />
           )}
 
-          {/* Screen 6: Test Feed - 5-Point Core Scan */}
+          {/* Screen 6: Test Feed - 5-Point Core Scan & Spatial Map */}
           {activeScreen === "test-scan" && (
             <FeedScanSampling
               feedType={selectedFeedType}
@@ -133,7 +141,7 @@ export default function Home() {
             />
           )}
 
-          {/* Screen 7: Test Feed - AI Analysis & Evidence Engine */}
+          {/* Screen 7: Test Feed - Evidence Contract Engine */}
           {activeScreen === "test-analysis" && (
             <AnalysisProgressEvidence
               feedType={selectedFeedType}
@@ -178,7 +186,7 @@ export default function Home() {
             />
           )}
 
-          {/* Screen 11: Silage Analysis */}
+          {/* Screen 11: Silage Analysis & Fermentation */}
           {activeScreen === "silage" && (
             <SilageAnalysisScreen
               onProceedToPassport={() => setActiveScreen("passport")}
@@ -234,6 +242,9 @@ export default function Home() {
               lang={lang}
             />
           )}
+
+          {/* Cooperative Ecosystem Surveillance View */}
+          {activeScreen === "cooperative" && <CooperativeView lang={lang} />}
 
           {/* Screen 17: Devices & Hardware Data Health */}
           {activeScreen === "devices" && <DevicesDataHealth lang={lang} />}
